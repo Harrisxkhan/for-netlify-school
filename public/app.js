@@ -101,13 +101,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the application
     async function initialize() {
         try {
-            // First check if server is running
+            // First check if server is running with our simplest endpoint
             try {
-                const testResponse = await fetch('/.netlify/functions/test');
+                const testResponse = await fetch('/.netlify/functions/simple-test');
                 if (!testResponse.ok) {
                     throw new Error('Server test endpoint failed');
                 }
-                console.log('Server connection test successful');
+                const testData = await testResponse.json();
+                console.log('Simple test successful:', testData);
+                
+                // Check if we have an API key configured
+                if (!testData.hasOpenAIKey) {
+                    statusElement.textContent = 'Warning: OpenAI API key is not configured on the server.';
+                    console.error('OpenAI API key is missing in environment variables');
+                }
+                
+                // Try the main test endpoint
+                const mainTest = await fetch('/.netlify/functions/test');
+                if (!mainTest.ok) {
+                    console.warn('Main test endpoint failed, but simple test passed');
+                } else {
+                    console.log('Server connection test successful');
+                }
             } catch (error) {
                 console.error('Server connection test failed:', error);
                 statusElement.textContent = 'Cannot connect to server. Please check if the server is running.';
@@ -242,7 +257,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const tokenResponse = await fetch('/.netlify/functions/session');
             
             if (!tokenResponse.ok) {
-                const errorData = await tokenResponse.json();
+                let errorData;
+                try {
+                    errorData = await tokenResponse.json();
+                } catch (e) {
+                    const text = await tokenResponse.text();
+                    errorData = { error: `Status ${tokenResponse.status}: ${text.substring(0, 100)}` };
+                }
                 console.error('Session token error:', errorData);
                 throw new Error(errorData.error || 'Failed to get session token');
             }

@@ -1,6 +1,7 @@
-import fetch from 'node-fetch';
+// Using CommonJS syntax for Netlify Functions
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   try {
     // Check if the request method is GET
     if (event.httpMethod !== 'GET') {
@@ -21,7 +22,7 @@ export const handler = async (event, context) => {
       console.error("API key is missing");
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: "API key is missing" }),
+        body: JSON.stringify({ error: "API key is missing. Please configure it in Netlify environment variables." }),
       };
     }
     
@@ -71,46 +72,57 @@ VISUAL DESCRIPTIONS:
     
     console.log("Request body:", JSON.stringify(requestBody));
     
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-    
-    console.log("Response status:", response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData;
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
       
-      try {
-        errorData = JSON.parse(errorText);
-      } catch (e) {
-        errorData = { raw_error: errorText };
+      console.log("Response status:", response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { raw_error: errorText };
+        }
+        
+        console.error("OpenAI API error:", errorData);
+        
+        return {
+          statusCode: response.status,
+          body: JSON.stringify({
+            error: "OpenAI API error",
+            details: errorData,
+            status: response.status
+          }),
+        };
       }
       
-      console.error("OpenAI API error:", errorData);
+      const data = await response.json();
+      console.log("Session created successfully");
       
       return {
-        statusCode: response.status,
-        body: JSON.stringify({
-          error: "OpenAI API error",
-          details: errorData,
-          status: response.status
+        statusCode: 200,
+        body: JSON.stringify(data),
+      };
+    } catch (fetchError) {
+      console.error("Fetch error:", fetchError.message);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ 
+          error: "Failed to connect to OpenAI API",
+          message: fetchError.message,
         }),
       };
     }
-    
-    const data = await response.json();
-    console.log("Session created successfully");
-    
-    return {
-      statusCode: 200,
-      body: JSON.stringify(data),
-    };
   } catch (error) {
     console.error("Server error:", error.message);
     

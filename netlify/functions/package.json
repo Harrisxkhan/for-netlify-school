@@ -2,7 +2,6 @@
   "name": "netlify-functions",
   "version": "1.0.0",
   "description": "Netlify functions for 5th Grade Homework Helper",
-  "type": "module",
   "dependencies": {
     "node-fetch": "^3.3.0"
   }

@@ -47,8 +47,8 @@ This application helps elementary school students with their homework by providi
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/5th-grade-homework-helper.git
-   cd 5th-grade-homework-helper
+   git clone https://github.com/Harrisxkhan/for-netlify-school.git
+   cd for-netlify-school
    ```
 
 2. Run the setup script for automatic installation:
@@ -172,4 +172,4 @@ Note: For all these platforms, you will still need to run the Arduino bridge loc
 
 ## License
 
-MIT 
+MIT

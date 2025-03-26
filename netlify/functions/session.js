@@ -1,6 +1,11 @@
 // Using CommonJS syntax for Netlify Functions
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
+// Add caching mechanism
+const CACHE_DURATION = 60000; // 1 minute cache (adjust as needed)
+let cachedSession = null;
+let cacheTimestamp = 0;
+
 exports.handler = async (event, context) => {
   try {
     // Check if the request method is GET
@@ -11,7 +16,17 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log("Session request received");
+    // Check cache first
+    const now = Date.now();
+    if (cachedSession && (now - cacheTimestamp < CACHE_DURATION)) {
+      console.log("Returning cached session token");
+      return {
+        statusCode: 200,
+        body: JSON.stringify(cachedSession),
+      };
+    }
+
+    console.log("Session request received - generating new token");
     
     // Get the API key from environment variables
     const apiKey = process.env.OPENAI_API_KEY;
@@ -108,6 +123,10 @@ VISUAL DESCRIPTIONS:
       
       const data = await response.json();
       console.log("Session created successfully");
+      
+      // Cache the successful result
+      cachedSession = data;
+      cacheTimestamp = now;
       
       return {
         statusCode: 200,

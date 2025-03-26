@@ -160,6 +160,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Start polling for Arduino button presses
             startButtonPolling();
+
+            // Add connection recovery event listener
+            window.addEventListener('online', () => {
+                console.log('Connection restored, reinitializing...');
+                // Attempt to reinitialize components if not recording
+                if (!isRecording) {
+                    statusElement.textContent = 'Connection restored. Ready to use.';
+                    if (micButton.disabled) {
+                        micButton.disabled = false;
+                    }
+                }
+            });
         } catch (error) {
             console.error('Error initializing app:', error);
             statusElement.textContent = 'Oops! I can\'t hear you. Please check your microphone permissions.';
@@ -171,15 +183,29 @@ document.addEventListener('DOMContentLoaded', () => {
     function startButtonPolling() {
         console.log('Starting Arduino button polling...');
         
-        // Check for button press every 100ms
+        // Track failed connection attempts
+        let failedAttempts = 0;
+        const MAX_FAILURES = 3;
+        
+        // Check for button press with reduced frequency
         buttonCheckInterval = setInterval(async () => {
             try {
+                // If we've failed too many times, stop trying
+                if (failedAttempts >= MAX_FAILURES) {
+                    console.log('Arduino bridge not detected after multiple attempts. Button polling disabled.');
+                    clearInterval(buttonCheckInterval);
+                    return;
+                }
+                
                 // Note: Arduino bridge still needs to run locally
                 const response = await fetch('http://localhost:3001/button-state');
                 if (!response.ok) {
-                    // No need to show errors - bridge might not be running yet
+                    failedAttempts++;
                     return;
                 }
+                
+                // Reset failures on success
+                failedAttempts = 0;
                 
                 const data = await response.json();
                 
@@ -192,10 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 lastButtonState = data.state;
             } catch (error) {
-                // Silently fail if bridge server isn't running
-                console.log('Arduino bridge not available');
+                failedAttempts++;
+                if (failedAttempts === 1) {
+                    console.log('Arduino bridge not available. Physical button functionality disabled.');
+                }
             }
-        }, 100);
+        }, 2000); // Reduced polling frequency to 2 seconds
     }
 
     // Toggle dark/light theme
@@ -215,8 +243,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Toggle recording state
+    // Toggle recording state with improved error handling
     async function toggleRecording() {
+        // Check if we're in error recovery mode
+        if (window.ErrorHandler.isInErrorRecoveryMode()) {
+            statusElement.textContent = "System is recovering from network errors. Please try again in a moment.";
+            return;
+        }
+
         if (!isRecording) {
             // Start recording
             micButton.classList.add('recording');
@@ -249,11 +283,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Start a new WebRTC session
-    async function startSession() {
+    // Start a new WebRTC session with retry logic
+    async function startSession(retryCount = 0) {
         try {
             // Get ephemeral key from server
-            console.log('Fetching session token...');
+            console.log(`Fetching session token${retryCount > 0 ? ` (attempt ${retryCount + 1})` : ''}...`);
             const tokenResponse = await fetch('/.netlify/functions/session');
             
             if (!tokenResponse.ok) {
@@ -270,6 +304,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const data = await tokenResponse.json();
             console.log('Session token received');
+            
+            // Reset error counters on success
+            window.ErrorHandler.resetErrorCounters();
             
             if (!data.client_secret || !data.client_secret.value) {
                 console.error('Invalid session data:', data);
@@ -350,7 +387,19 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } catch (error) {
             console.error('Error in startSession:', error);
-            closeSession();
+            
+            // Use error handler for backoff
+            const waitTime = window.ErrorHandler.handleApiError(error, (message) => {
+                statusElement.textContent = message;
+            });
+            
+            // Add retry logic with backoff
+            if (retryCount < 2) { // Try up to 3 times (initial + 2 retries)
+                console.log(`Will retry in ${waitTime}ms...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                return startSession(retryCount + 1);
+            }
+            
             throw error;
         }
     }

@@ -1,0 +1,25 @@
+{
+  "name": "arduino-bridge",
+  "version": "1.0.0",
+  "description": "Bridge between Arduino and web application",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node bridge.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "arduino",
+    "serial",
+    "bridge"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@serialport/bindings-cpp": "^12.0.1",
+    "@serialport/parser-readline": "^11.0.1",
+    "@serialport/stream": "^11.0.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "serialport": "^11.0.1"
+  }
+}

@@ -1,0 +1,31 @@
+# Dependency directories
+node_modules/
+*/node_modules/
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*/logs/
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# npm
+package-lock.json 

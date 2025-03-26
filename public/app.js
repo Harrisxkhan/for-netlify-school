@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activationStatus.className = '';
         
         try {
-            const response = await fetch('/activate', {
+            const response = await fetch('/.netlify/functions/activate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // First check if server is running
             try {
-                const testResponse = await fetch('/test');
+                const testResponse = await fetch('/.netlify/functions/test');
                 if (!testResponse.ok) {
                     throw new Error('Server test endpoint failed');
                 }
@@ -159,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Check for button press every 100ms
         buttonCheckInterval = setInterval(async () => {
             try {
+                // Note: Arduino bridge still needs to run locally
                 const response = await fetch('http://localhost:3001/button-state');
                 if (!response.ok) {
                     // No need to show errors - bridge might not be running yet
@@ -238,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Get ephemeral key from server
             console.log('Fetching session token...');
-            const tokenResponse = await fetch('/session');
+            const tokenResponse = await fetch('/.netlify/functions/session');
             
             if (!tokenResponse.ok) {
                 const errorData = await tokenResponse.json();

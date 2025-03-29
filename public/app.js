@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activationStatus.className = '';
         
         try {
-            const response = await fetch('/.netlify/functions/activate', {
+            const response = await fetch(window.appConfig.endpoints.activate, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // First check if server is running with our simplest endpoint
             try {
-                const testResponse = await fetch('/.netlify/functions/simple-test');
+                const testResponse = await fetch(window.appConfig.endpoints.simpleTest);
                 if (!testResponse.ok) {
                     throw new Error('Server test endpoint failed');
                 }
@@ -111,13 +111,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Simple test successful:', testData);
                 
                 // Check if we have an API key configured
-                if (!testData.hasOpenAIKey) {
+                if (testData.hasOpenAIKey === false) {
                     statusElement.textContent = 'Warning: OpenAI API key is not configured on the server.';
                     console.error('OpenAI API key is missing in environment variables');
                 }
                 
                 // Try the main test endpoint
-                const mainTest = await fetch('/.netlify/functions/test');
+                const mainTest = await fetch(window.appConfig.endpoints.test);
                 if (!mainTest.ok) {
                     console.warn('Main test endpoint failed, but simple test passed');
                 } else {
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Get ephemeral key from server
             console.log(`Fetching session token${retryCount > 0 ? ` (attempt ${retryCount + 1})` : ''}...`);
-            const tokenResponse = await fetch('/.netlify/functions/session');
+            const tokenResponse = await fetch(window.appConfig.endpoints.session);
             
             if (!tokenResponse.ok) {
                 let errorData;
